@@ -8,7 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:google_sign_in/google_sign_in.dart' as signIn;
 import 'package:url_launcher/url_launcher.dart';
 
-const _clientId = "293170462422-dq44tns0nsputf6k94utb989975222ho.apps.googleusercontent.com";
+const _clientId =
+    "293170462422-tl2bpb90pas1vb8a43mq6ma03c8340il.apps.googleusercontent.com";
 const _scopes = ['https://www.googleapis.com/auth/drive.file'];
 
 class GoogleDrive {
@@ -19,8 +20,8 @@ class GoogleDrive {
     var credentials = await storage.getCredentials();
     if (credentials == null) {
       //Needs user authentication
-      var authClient = await clientViaUserConsent(
-          ClientId(_clientId),_scopes, (url) {
+      var authClient =
+          await clientViaUserConsent(ClientId(_clientId), _scopes, (url) {
         //Open Url in Browser
         launch(url);
       });
@@ -54,6 +55,7 @@ class GoogleDrive {
         $fields: "files(id, name)",
       );
       final files = found.files;
+      debugPrint("files : ${files}");
       if (files == null) {
         print("Sign-in first Error");
         return null;
@@ -77,19 +79,20 @@ class GoogleDrive {
       return null;
     }
   }
-  
-  uploadFileToGoogleDrive(File file, signIn.GoogleSignInAccount?  account) async {
+
+  uploadFileToGoogleDrive(
+      File file, signIn.GoogleSignInAccount? account) async {
     final authHeaders = await account!.authHeaders;
-final authenticateClient = GoogleAuthClient(authHeaders);
+    final authenticateClient = GoogleAuthClient(authHeaders);
     debugPrint("void upload");
     // var client = await getHttpClient();
     var drive = ga.DriveApi(authenticateClient);
     debugPrint("drive : ${drive}");
-    String? folderId =  await _getFolderId(drive);
+    String? folderId = await _getFolderId(drive);
     debugPrint("folder id ${folderId}");
-    if(folderId == null){
-      print("Sign-in first Error");
-    }else {
+    if (folderId == null) {
+      debugPrint("Sign-in first Error");
+    } else {
       ga.File fileToUpload = ga.File();
       fileToUpload.parents = [folderId];
       fileToUpload.name = p.basename(file.absolute.path);
@@ -97,14 +100,15 @@ final authenticateClient = GoogleAuthClient(authHeaders);
         fileToUpload,
         uploadMedia: ga.Media(file.openRead(), file.lengthSync()),
       );
-      print(response);
+      debugPrint("response : ${response.id}");
+      debugPrint("authenticateClient : ${authenticateClient._headers}");
+      var id = response.id;
+      var url = Uri.parse(
+          "https://www.googleapis.com/drive/v3/files/$id?fields=webContentLink");
+      var res = await http.get(url, headers: authenticateClient._headers);
+      debugPrint("res : ${res.body}");
     }
-
   }
-
-
-
-
 }
 
 class GoogleAuthClient extends http.BaseClient {
